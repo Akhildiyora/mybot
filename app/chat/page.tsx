@@ -1,12 +1,12 @@
-
-
-
-export default async function Chats() {
+export default async function ChatsPage() {
   return (
-    <div className="flex h-screen items-center justify-center font-sans bg-zinc-900">
-      <main className="flex w-full max-w-3xl items-center justify-center text-4xl bg-zinc-900 sm:items-start">
-        This is your Chats
-      </main>
+    <div className="flex h-full w-full items-center justify-center text-zinc-300">
+      <div className="rounded-xl border border-zinc-700 bg-zinc-800/40 p-8 text-center">
+        <h1 className="mb-2 text-3xl font-semibold text-white">
+          Welcome to MyBot
+        </h1>
+        <p>Select a chat from the sidebar or create a new one.</p>
+      </div>
     </div>
   );
 }
