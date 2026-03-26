@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Popup from "reactjs-popup";
+import { RiDeleteBin6Line } from "react-icons/ri";
 import { FaEdit } from "react-icons/fa";
 import { GoKebabHorizontal } from "react-icons/go";
 
@@ -124,19 +125,19 @@ export default function Chatshell({ children }: Props) {
                           </button>}
                         position="right center"
                       >
-                        <div className="flex flex-col items-center gap-1">
+                        <div className="flex flex-col items-center gap-1 bg-zinc-900 rounded-xl border border-zinc-600 p-2">
                           <button
-                            className="rounded-full hover:bg-zinc-600 p-1 cursor-pointer"
+                            className="rounded-full flex items-center justify-items-start gap-2 hover:bg-zinc-600 p-1 cursor-pointer"
                             onClick={() => handleRenameChat(chat.id)}
                             title="Rename"
                           >
-                            <GoKebabHorizontal />
+                            <FaEdit /> Edit
                           </button>
                           <button
-                            className="cursor-pointer rounded px-2 py-1 text-xs hover:bg-red-600 hover:text-white"
+                            className="cursor-pointer flex items-center justify-items-start gap-2 rounded px-2 py-1 hover:bg-red-600 hover:text-white"
                             onClick={() => handleDeleteChat(chat.id)}
                           >
-                            Del
+                            <RiDeleteBin6Line />Delete 
                           </button>
                         </div>
                       </Popup>
