@@ -1,5 +1,6 @@
+import { ChatProvider } from "@/components/ChatContext";
+import ChatShell from "@/components/ChatShell";
 import React from "react";
-import Chatshell from "@/components/ChatShell";
 
 export default function ChatsLayout({
   children,
@@ -7,9 +8,5 @@ export default function ChatsLayout({
   children: React.ReactNode;
 }) {
 
-  return (
-    <>
-      <Chatshell>{children}</Chatshell>
-    </>
-  );
+  return <ChatProvider><ChatShell>{children}</ChatShell></ChatProvider>;
 }

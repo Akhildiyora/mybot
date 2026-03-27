@@ -1,42 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Popup from "reactjs-popup";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { FaEdit } from "react-icons/fa";
 import { GoKebabHorizontal } from "react-icons/go";
 
-import type { Chat, Message } from "@/types/chat";
-import { createChat, loadChats, saveChats } from "@/lib/chat-storage";
+import { useChatContext } from "./ChatContext";
+import { createChat } from "@/lib/chat-storage";
 
 type Props = {
   children?: React.ReactNode;
 };
 
-export default function Chatshell({ children }: Props) {
+export default function ChatShell({ children }: Props) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const { chats, setChats } = useChatContext()
 
-  useEffect(() => {
-    const existing = loadChats();
-    setChats(existing);
-    setLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!loaded) return;
-    saveChats(chats);
-  }, [chats, loaded]);
-
-  const activeChatId = useMemo(() => {
-    const parts = pathname.split("/");
-    return parts[2] || "";
-  }, [pathname]);
+  const activeChatId = pathname.split("/")[2] ?? "";
 
   const handleNewChat = () => {
     const chat = createChat();
@@ -116,13 +100,13 @@ export default function Chatshell({ children }: Props) {
                       </Link>
 
                       <Popup
-                        trigger={<button
+                        trigger={
+                          <button
                             className="rounded-full hover:bg-zinc-600 p-1.5 cursor-pointer"
-                            onClick={() => handleRenameChat(chat.id)}   
-                            title="Rename"
                           >
                             <GoKebabHorizontal />
-                          </button>}
+                          </button>
+                        }
                         position="right center"
                       >
                         <div className="flex flex-col items-center gap-1 bg-zinc-900 rounded-xl border border-zinc-600 p-2">
@@ -137,7 +121,8 @@ export default function Chatshell({ children }: Props) {
                             className="cursor-pointer flex items-center justify-items-start gap-2 rounded px-2 py-1 hover:bg-red-600 hover:text-white"
                             onClick={() => handleDeleteChat(chat.id)}
                           >
-                            <RiDeleteBin6Line />Delete 
+                            <RiDeleteBin6Line />
+                            Delete
                           </button>
                         </div>
                       </Popup>
@@ -159,82 +144,7 @@ export default function Chatshell({ children }: Props) {
         {children}
       </div>
     </div>
-  );
+  )
 }
 
-export function useChatState(chatId: string) {
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    const existing = loadChats();
-    setChats(existing);
-    setLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!loaded) return;
-    saveChats(chats);
-  }, [chats, loaded]);
-
-  const chat = chats.find((c) => c.id === chatId);
-
-  const ensureChat = () => {
-    const existing = chats.find((c) => c.id === chatId);
-    if (existing) return existing;
-
-    const fresh: Chat = {
-      id: chatId,
-      name: "New Chat",
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      messages: [],
-    };
-
-    setChats((prev) => [fresh, ...prev]);
-    return fresh;
-  };
-
-  const updateChatMessages = (updater: (messages: Message[]) => Message[]) => {
-    setChats((prev) => {
-      const existing = prev.find((c) => c.id === chatId);
-
-      if (!existing) {
-        const fresh: Chat = {
-          id: chatId,
-          name: "New Chat",
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          messages: updater([]),
-        };
-        return [fresh, ...prev];
-      }
-
-      const nextMessages = updater(existing.messages);
-
-      const nextName =
-        existing.name === "New Chat" && nextMessages.length > 0
-          ? nextMessages[0].content.slice(0, 30) || "New Chat"
-          : existing.name;
-
-      return prev.map((c) =>
-        c.id === chatId
-          ? {
-              ...c,
-              name: nextName,
-              updatedAt: Date.now(),
-              messages: nextMessages,
-            }
-          : c,
-      );
-    });
-  };
-
-  return {
-    chats,
-    chat,
-    loaded,
-    ensureChat,
-    updateChatMessages,
-  };
-}

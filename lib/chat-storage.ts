@@ -28,7 +28,7 @@ export function createChat(name?: string ): Chat {
 
     return {
         id,
-        name: name?.trim() || `Chat ${new Date(now).toLocaleString()}`,
+        name: "New Chat",
         createdAt: now,
         updatedAt: now,
         messages: [],

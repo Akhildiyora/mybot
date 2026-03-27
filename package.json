@@ -9,13 +9,18 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "ai": "^6.0.140",
     "dotenv": "^17.3.1",
+    "marked": "^17.0.5",
     "next": "16.2.1",
     "openai": "^6.32.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-icons": "^5.6.0",
+    "react-markdown": "^10.1.0",
     "reactjs-popup": "^2.0.6",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

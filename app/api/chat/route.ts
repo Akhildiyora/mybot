@@ -1,4 +1,3 @@
-import { Content } from "next/font/google";
 import OpenAI from "openai";
 
 const client = new OpenAI({
@@ -26,14 +25,14 @@ export async function POST(req: Request) {
     const input = [
       ...history.map((item) => ({
         role: item.role,
-        content: message,
+        content: item.content,
       })),
       {
         role: "user" as const,
         content: message,
       },
     ];
-
+    
     const stream = await client.responses.stream({
       model: process.env.MY_MODEL,
       input,

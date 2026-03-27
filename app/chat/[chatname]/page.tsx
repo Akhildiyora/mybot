@@ -1,20 +1,33 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState, useMemo } from "react";
-import { useChatState } from "@/components/ChatShell";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useChatContext } from "@/components/ChatContext";
 
 export default function NewChat() {
   const params = useParams<{ chatname: string }>();
   const chatId = params.chatname;
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  const { chat, loaded, updateChatMessages } = useChatState(chatId);
+  const { chats, loaded, updateChatMessages, setChats } = useChatContext();
+  const chat = chats.find((c) => c.id === chatId);
 
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const messages = useMemo(() => chat?.messages || [], [chat]);
+
+  const scrollToBottom = () => {
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSubmit = async () => {
     if (!message.trim() || loading) return;
@@ -26,7 +39,7 @@ export default function NewChat() {
     setError("");
     setMessage("");
 
-    updateChatMessages((prev) => [
+    updateChatMessages(chatId, (prev) => [
       ...prev,
       {
         id: crypto.randomUUID(),
@@ -39,6 +52,11 @@ export default function NewChat() {
         content: "",
       },
     ]);
+
+    const isFirstRes =
+      (chat?.messages?.filter((m) => m.role === "assistant").length || 0) === 0;
+
+    let firstRes = "";
 
     try {
       const res = await fetch("/api/chat", {
@@ -66,19 +84,64 @@ export default function NewChat() {
 
         if (result.value) {
           buffer += decoder.decode(result.value, { stream: true });
+          firstRes = buffer;
 
-          updateChatMessages((prev) =>
+          updateChatMessages(chatId, (prev) =>
             prev.map((msg) =>
               msg.id === assistantId ? { ...msg, content: buffer } : msg,
             ),
           );
+
+          requestAnimationFrame(() => {
+            bottomRef.current?.scrollIntoView({
+              behavior: "auto",
+              block: "end",
+            });
+          });
+        }
+      }
+
+      if (isFirstRes && firstRes.trim()) {
+        try {
+          const titleRes = await fetch("/api/chat-title", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              firstMsg: userText,
+              firstRes,
+            }),
+          });
+
+          if (!titleRes.ok) {
+            throw new Error(`Title API failed: ${titleRes.status}`);
+          }
+
+          const titleData = await titleRes.json();
+
+          if (titleData?.title) {
+            setChats((prev) =>
+              prev.map((c) =>
+                c.id === chatId
+                  ? {
+                      ...c,
+                      name: titleData.title,
+                      updatedAt: Date.now(),
+                    }
+                  : c,
+              ),
+            );
+          }
+        } catch (error) {
+          console.error("Failed to generate title", error);
         }
       }
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Something went wrong");
 
-      updateChatMessages((prev) =>
+      updateChatMessages(chatId, (prev) =>
         prev.map((msg) =>
           msg.id === assistantId
             ? { ...msg, content: "Failed to generate response." }
@@ -119,12 +182,11 @@ export default function NewChat() {
                 <div className="mb-1 text-xs uppercase tracking-wide opacity-70">
                   {msg.role}
                 </div>
-                <div>
                   {msg.content ||
-                  (loading && msg.role === "assistant" ? "..." : "")}
-                </div>
+                    (loading && msg.role === "assistant" ? "..." : "")}
               </div>
             ))}
+            <div ref={bottomRef} />
           </div>
         )}
       </div>
@@ -141,7 +203,7 @@ export default function NewChat() {
             type="text"
             name="message"
             value={message}
-            placeholder="Enter somthing"
+            placeholder={loading ? "Wait till previous response generate.... " : "EnterSomething"}
             disabled={loading}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
