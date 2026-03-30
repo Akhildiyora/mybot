@@ -26,9 +26,7 @@ export async function POST(req: Request) {
       {
         role: "system",
         content: `
-            Respond strictly in clean Markdown.
-
-            Rules:
+            Respond strictly in clean Markdown. with headings, bullet points, code blocks, etc. Do not include any text outside of Markdown formatting. Follow these Rules:
             - Do NOT create empty bullet points
             - Do NOT add blank lines inside lists
             - Keep lists continuous (no breaks)
