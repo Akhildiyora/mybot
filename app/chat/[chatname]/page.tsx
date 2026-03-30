@@ -6,12 +6,16 @@ import { useChatContext } from "@/components/ChatContext";
 import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
+import { TbCopy, TbCopyCheckFilled } from "react-icons/tb";
 import "highlight.js/styles/github-dark.css";
 
 export default function NewChat() {
   const params = useParams<{ chatname: string }>();
   const chatId = params.chatname;
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const lastUserRef = useRef<HTMLDivElement | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const { chats, loaded, updateChatMessages, setChats } = useChatContext();
   const chat = chats.find((c) => c.id === chatId);
@@ -19,6 +23,7 @@ export default function NewChat() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [copiedId, setCopiedId] = useState(null);
 
   const messages = useMemo(() => chat?.messages || [], [chat]);
 
@@ -29,24 +34,37 @@ export default function NewChat() {
     });
   };
 
+  const CopyUrl = async (id: any) => {
+    const currentMessage = messages.find((m) => m.id === id)?.content || "";
+    await navigator.clipboard.writeText(currentMessage);
+    setCopiedId(id);
+
+    setTimeout(() => {
+      setCopiedId(null);
+    }, 2000);
+  };
+
   useEffect(() => {
-    scrollToBottom();
+    if (loading) {
+      scrollToBottom();
+    }
   }, [messages]);
 
   const handleSubmit = async () => {
     if (!message.trim() || loading) return;
 
     const userText = message.trim();
+    const userId = crypto.randomUUID();
     const assistantId = crypto.randomUUID();
+    setCurrentUserId(userId);
 
     setLoading(true);
     setError("");
-    setMessage("");
 
     updateChatMessages(chatId, (prev) => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: userId,
         role: "user",
         content: userText,
       },
@@ -105,6 +123,13 @@ export default function NewChat() {
         }
       }
 
+      setTimeout(() => {
+        lastUserRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+
       if (isFirstRes && firstRes.trim()) {
         try {
           const titleRes = await fetch("/api/chat-title", {
@@ -141,6 +166,7 @@ export default function NewChat() {
           console.error("Failed to generate title", error);
         }
       }
+      setMessage("");
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -161,32 +187,33 @@ export default function NewChat() {
     }
   };
 
-  
   function cleanMarkdown(text: string) {
-  return text
-    // remove empty bullets
-    .replace(/^\s*[-*]\s*$/gm, "")
+    return (
+      text
+        // remove empty bullets
+        .replace(/^\s*[-*]\s*$/gm, "")
 
-    // remove bullets with only spaces
-    .replace(/^\s*[-*]\s+\n/gm, "")
+        // remove bullets with only spaces
+        .replace(/^\s*[-*]\s+\n/gm, "")
 
-    // fix broken lists (merge lists separated by empty line)
-    .replace(/\n\n(?=\s*[-*])/g, "\n")
+        // fix broken lists (merge lists separated by empty line)
+        .replace(/\n\n(?=\s*[-*])/g, "\n")
 
-    // remove excessive blank lines
-    .replace(/\n{3,}/g, "\n\n")
+        // remove excessive blank lines
+        .replace(/\n{3,}/g, "\n\n")
 
-    // remove leading blank lines
-    .replace(/^\n+/, "")
+        // remove leading blank lines
+        .replace(/^\n+/, "")
 
-    // remove trailing blank lines
-    .replace(/\n+$/, "")
+        // remove trailing blank lines
+        .replace(/\n+$/, "")
 
-    // trim each line
-    .split("\n")
-    .map(line => line.trimEnd())
-    .join("\n");
-}
+        // trim each line
+        .split("\n")
+        .map((line) => line.trimEnd())
+        .join("\n")
+    );
+  }
 
   if (!loaded) {
     return (
@@ -205,56 +232,73 @@ export default function NewChat() {
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`max-w-[80%] rounded-2xl px-4 py-3 whitespace-pre-wrap ${
-                  msg.role === "user"
-                    ? "ml-auto bg-blue-600 text-white"
-                    : "bg-zinc-800 text-zinc-100"
-                }`}
-              >
-                <div className="mb-1 text-xs uppercase tracking-wide opacity-70">
-                  {msg.role}
-                </div>
-                <div className="
-                prose prose-invert max-w-none
-                prose-p:my-1
-                prose-li:my-0
-                prose-ul:my-1
-                prose-headings:mb-2 prose-headings:mt-3
-                leading-normal
-                ">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeHighlight]}
-                    components={{
-                    li({ children }) {
-                      const text = String(children).trim();
-                      if (!text) return null;
-                      return <li>{children}</li>;
-                    },
+            {messages.map((msg) => {
+              const isCurrentUser =
+                msg.role === "user" && msg.id === currentUserId;
 
-                    p({ children }) {
-                      const text = String(children).trim();
-                      if (!text) return null; // ❌ remove empty paragraphs
-                      return <p className="my-1">{children}</p>;
-                    },
-
-                    ul({ children }) {
-                      return <ul className="my-1">{children}</ul>;
-                    },
-                  }}
-                    skipHtml
+              return (
+                <div
+                  key={msg.id}
+                  className={`max-w-[80%] relative rounded-2xl px-4 py-3 whitespace-pre-wrap ${
+                    msg.role === "user"
+                      ? "ml-auto bg-blue-600 text-white"
+                      : "bg-zinc-800 text-zinc-100"
+                  }`}
+                >
+                  {isCurrentUser && <div ref={lastUserRef} />}
+                  <div className="mb-1 text-xs uppercase tracking-wide opacity-70">
+                    {msg.role}
+                  </div>
+                  <div
+                    className="
+                    prose prose-invert max-w-none
+                    prose-p:my-1
+                    prose-li:my-0
+                    prose-ul:my-1
+                    prose-headings:mb-2 prose-headings:mt-3
+                    leading-normal
+                    "
                   >
-                    {cleanMarkdown(
-                      msg.content ||
-                        (loading && msg.role === "assistant" ? "..." : ""),
-                    )}
-                  </ReactMarkdown>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeHighlight]}
+                      components={{
+                        li({ children }) {
+                          const text = String(children).trim();
+                          if (!text) return null;
+                          return <li>{children}</li>;
+                        },
+
+                        p({ children }) {
+                          const text = String(children).trim();
+                          if (!text) return null; // ❌ remove empty paragraphs
+                          return <p className="my-1">{children}</p>;
+                        },
+
+                        ul({ children }) {
+                          return <ul className="my-1">{children}</ul>;
+                        },
+                      }}
+                      skipHtml
+                    >
+                      {cleanMarkdown(
+                        msg.content ||
+                          (loading && msg.role === "assistant" ? "..." : ""),
+                      )}
+                    </ReactMarkdown>
+                  </div>
+                  <button
+                    className={`absolute bottom-0 cursor-pointer hover:bg-zinc-700 p-2 rounded-full ${msg.role === "user" ? "-left-8" : "-right-8"}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      CopyUrl(msg.id);
+                    }}
+                  >
+                    {copiedId === msg.id ? <TbCopyCheckFilled /> : <TbCopy />}
+                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <div ref={bottomRef} />
           </div>
         )}
@@ -267,22 +311,45 @@ export default function NewChat() {
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          <input
+        <div className="flex items-end gap-2">
+          <textarea
             type="text"
             name="message"
             value={message}
             placeholder={
               loading
                 ? "Wait till previous response generate.... "
-                : "EnterSomething"
+                : "Enter Something"
             }
             disabled={loading}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") handleSubmit();
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+              }
             }}
-            className="w-full rounded-lg border border-zinc-600 bg-zinc-800 px-4 py-3 text-white outline-none"
+            ref={textareaRef}
+            onChange={(e) => {
+              setMessage(e.target.value);
+
+              const el = textareaRef.current;
+              if (!el) return;
+
+              el.style.height = "auto";
+              el.style.height = Math.min(el.scrollHeight, 240) + "px";
+            }}
+            className="
+              w-full
+              rounded-lg
+              border border-zinc-600
+              bg-zinc-800
+              px-4 py-3
+              text-white
+              outline-none
+              resize-none
+              overflow-y-auto
+            "
           />
           <button
             className="border border-zinc-600 rounded-lg bg-zinc-800 py-3 px-4 cursor-pointer text-nowrap text-white disabled:cursor-not-allowed disabled:opacity-50"
