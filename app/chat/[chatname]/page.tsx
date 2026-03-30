@@ -3,6 +3,10 @@
 import { useParams } from "next/navigation";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useChatContext } from "@/components/ChatContext";
+import remarkGfm from "remark-gfm";
+import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/github-dark.css";
 
 export default function NewChat() {
   const params = useParams<{ chatname: string }>();
@@ -149,9 +153,40 @@ export default function NewChat() {
         ),
       );
     } finally {
+      console.log(
+        "messages:",
+        messages.map((m) => ({ role: m.role, content: m.content })),
+      );
       setLoading(false);
     }
   };
+
+  
+  function cleanMarkdown(text: string) {
+  return text
+    // remove empty bullets
+    .replace(/^\s*[-*]\s*$/gm, "")
+
+    // remove bullets with only spaces
+    .replace(/^\s*[-*]\s+\n/gm, "")
+
+    // fix broken lists (merge lists separated by empty line)
+    .replace(/\n\n(?=\s*[-*])/g, "\n")
+
+    // remove excessive blank lines
+    .replace(/\n{3,}/g, "\n\n")
+
+    // remove leading blank lines
+    .replace(/^\n+/, "")
+
+    // remove trailing blank lines
+    .replace(/\n+$/, "")
+
+    // trim each line
+    .split("\n")
+    .map(line => line.trimEnd())
+    .join("\n");
+}
 
   if (!loaded) {
     return (
@@ -182,8 +217,42 @@ export default function NewChat() {
                 <div className="mb-1 text-xs uppercase tracking-wide opacity-70">
                   {msg.role}
                 </div>
-                  {msg.content ||
-                    (loading && msg.role === "assistant" ? "..." : "")}
+                <div className="
+                prose prose-invert max-w-none
+                prose-p:my-1
+                prose-li:my-0
+                prose-ul:my-1
+                prose-headings:mb-2 prose-headings:mt-3
+                leading-normal
+                ">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeHighlight]}
+                    components={{
+                    li({ children }) {
+                      const text = String(children).trim();
+                      if (!text) return null;
+                      return <li>{children}</li>;
+                    },
+
+                    p({ children }) {
+                      const text = String(children).trim();
+                      if (!text) return null; // ❌ remove empty paragraphs
+                      return <p className="my-1">{children}</p>;
+                    },
+
+                    ul({ children }) {
+                      return <ul className="my-1">{children}</ul>;
+                    },
+                  }}
+                    skipHtml
+                  >
+                    {cleanMarkdown(
+                      msg.content ||
+                        (loading && msg.role === "assistant" ? "..." : ""),
+                    )}
+                  </ReactMarkdown>
+                </div>
               </div>
             ))}
             <div ref={bottomRef} />
@@ -203,7 +272,11 @@ export default function NewChat() {
             type="text"
             name="message"
             value={message}
-            placeholder={loading ? "Wait till previous response generate.... " : "EnterSomething"}
+            placeholder={
+              loading
+                ? "Wait till previous response generate.... "
+                : "EnterSomething"
+            }
             disabled={loading}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {

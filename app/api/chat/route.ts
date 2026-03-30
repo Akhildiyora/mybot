@@ -23,6 +23,19 @@ export async function POST(req: Request) {
     }
 
     const input = [
+      {
+        role: "system",
+        content: `
+        Respond strictly in clean Markdown.
+
+        Rules:
+        - Do NOT create empty bullet points
+        - Do NOT add blank lines inside lists
+        - Keep lists continuous (no breaks)
+        - Do NOT wrap list items in extra paragraphs
+        - Avoid unnecessary spacing
+        `,
+      },
       ...history.map((item) => ({
         role: item.role,
         content: item.content,
