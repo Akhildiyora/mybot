@@ -24,11 +24,8 @@ export async function POST(req: Request) {
 
     const input = [
       {
-        role: "system" as const ,
-        content: [
-          {
-            type: "input_text" as const,
-            text: `
+        role: "system",
+        content: `
             Respond strictly in clean Markdown.
 
             Rules:
@@ -38,28 +35,16 @@ export async function POST(req: Request) {
             - Do NOT wrap list items in extra paragraphs
             - Avoid unnecessary spacing
             `,
-          },
-        ],
       },
       ...history.map((item) => ({
         role: item.role as "user" | "assistant",
-        content: [
-          {
-            type: "input_text" as const,
-            text: item.content,
-          },
-        ],
+        content: item.content,
       })),
       {
         role: "user" as const,
-        content: [
-          {
-            type: "input_text" as const,
-            text: message,
-          },
-        ],
+        content: message,
       },
-    ];
+    ] as any;
 
     const stream = await client.responses.stream({
       model: process.env.MY_MODEL,
