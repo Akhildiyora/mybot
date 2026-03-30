@@ -313,7 +313,6 @@ export default function NewChat() {
 
         <div className="flex items-end gap-2">
           <textarea
-            type="text"
             name="message"
             value={message}
             placeholder={
@@ -322,7 +321,6 @@ export default function NewChat() {
                 : "Enter Something"
             }
             disabled={loading}
-            onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();

@@ -24,28 +24,43 @@ export async function POST(req: Request) {
 
     const input = [
       {
-        role: "system",
-        content: `
-        Respond strictly in clean Markdown.
+        role: "system" as const ,
+        content: [
+          {
+            type: "input_text" as const,
+            text: `
+            Respond strictly in clean Markdown.
 
-        Rules:
-        - Do NOT create empty bullet points
-        - Do NOT add blank lines inside lists
-        - Keep lists continuous (no breaks)
-        - Do NOT wrap list items in extra paragraphs
-        - Avoid unnecessary spacing
-        `,
+            Rules:
+            - Do NOT create empty bullet points
+            - Do NOT add blank lines inside lists
+            - Keep lists continuous (no breaks)
+            - Do NOT wrap list items in extra paragraphs
+            - Avoid unnecessary spacing
+            `,
+          },
+        ],
       },
       ...history.map((item) => ({
-        role: item.role,
-        content: item.content,
+        role: item.role as "user" | "assistant",
+        content: [
+          {
+            type: "input_text" as const,
+            text: item.content,
+          },
+        ],
       })),
       {
         role: "user" as const,
-        content: message,
+        content: [
+          {
+            type: "input_text" as const,
+            text: message,
+          },
+        ],
       },
     ];
-    
+
     const stream = await client.responses.stream({
       model: process.env.MY_MODEL,
       input,
