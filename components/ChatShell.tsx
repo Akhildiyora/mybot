@@ -137,9 +137,20 @@ export default function ChatShell({ children }: Props) {
         </div>
       </div>
       <div className="bg-zinc-900 h-full w-[85%] p-4 ">
-        <div className="mb-4 text-white">
-          <span className="text-sm text-zinc-400">model:</span>
+        <div className="mb-4 mx-2 text-white flex items-center justify-between">
+          <div className="flex items-baseline gap-2 text-xl">
+            {chats.find((c) => c.id === activeChatId)?.name || "New Chat"}
+          <div className="text-xs text-zinc-500">
+            {chats.find((c) => c.id === activeChatId)              ? new Date(
+                  chats.find((c) => c.id === activeChatId)?.updatedAt || 0,
+                ).toLocaleString()
+              : "Start a new chat to see timestamp"}
+          </div>
+          </div>
+          <div className="text-sm text-zinc-400">
+            <span className="text-sm text-zinc-400">model:</span>
           <span className="font-bold">gpt-5-nano</span>
+          </div>
         </div>
         {children}
       </div>
